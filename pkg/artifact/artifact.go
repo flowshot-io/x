@@ -13,30 +13,54 @@ import (
 )
 
 type (
-	StorableArtifact interface {
+	Artifact interface {
 		SaveToWriter(w io.Writer) error
 		LoadFromReader(r io.Reader) error
-		Name() string
+		ExtractToDirectory(dir string) error
+		AddFile(path string, content []byte) error
+		ListFiles() ([]string, error)
+		GetName() string
 	}
 
-	Artifact struct {
+	TarGzArtifact struct {
 		name string
 		vfs  afero.Fs
 	}
 )
 
-func New(artifactName string) *Artifact {
+func New(artifactName string) Artifact {
 	if !strings.HasSuffix(artifactName, ".tar.gz") {
 		artifactName = artifactName + ".tar.gz"
 	}
 
-	return &Artifact{
+	return &TarGzArtifact{
 		name: artifactName,
 		vfs:  afero.NewMemMapFs(),
 	}
 }
 
-func NewWithPaths(artifactName string, paths []string) (*Artifact, error) {
+func NewFromTarGz(tarGzFilePath string) error {
+	if !strings.HasSuffix(tarGzFilePath, ".tar.gz") {
+		return fmt.Errorf("tar.gz file path must end with .tar.gz")
+	}
+
+	artifact := New(filepath.Base(tarGzFilePath))
+
+	tarGzFile, err := os.Open(tarGzFilePath)
+	if err != nil {
+		return fmt.Errorf("error opening tar.gz file: %w", err)
+	}
+	defer tarGzFile.Close()
+
+	err = artifact.LoadFromReader(tarGzFile)
+	if err != nil {
+		return fmt.Errorf("error loading artifact from tar.gz file: %w", err)
+	}
+
+	return nil
+}
+
+func NewWithPaths(artifactName string, paths []string) (Artifact, error) {
 	artifact := New(artifactName)
 
 	for _, path := range paths {
@@ -81,7 +105,7 @@ func NewWithPaths(artifactName string, paths []string) (*Artifact, error) {
 }
 
 // AddFile adds a file to the artifact
-func (a *Artifact) AddFile(filePath string, content []byte) error {
+func (a *TarGzArtifact) AddFile(filePath string, content []byte) error {
 	// Ensure the parent directory structure exists
 	dirPath := filepath.Dir(filePath)
 	if err := a.vfs.MkdirAll(dirPath, 0755); err != nil {
@@ -102,22 +126,7 @@ func (a *Artifact) AddFile(filePath string, content []byte) error {
 	return nil
 }
 
-func (a *Artifact) LoadFromTarGzFile(tarGzFilePath string) error {
-	tarGzFile, err := os.Open(tarGzFilePath)
-	if err != nil {
-		return fmt.Errorf("error opening tar.gz file: %w", err)
-	}
-	defer tarGzFile.Close()
-
-	err = a.LoadFromReader(tarGzFile)
-	if err != nil {
-		return fmt.Errorf("error loading artifact from tar.gz file: %w", err)
-	}
-
-	return nil
-}
-
-func (a *Artifact) ExtractTo(outputDir string) error {
+func (a *TarGzArtifact) ExtractToDirectory(outputDir string) error {
 	return afero.Walk(a.vfs, ".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -148,7 +157,7 @@ func (a *Artifact) ExtractTo(outputDir string) error {
 	})
 }
 
-func (a *Artifact) SaveToWriter(writer io.Writer) error {
+func (a *TarGzArtifact) SaveToWriter(writer io.Writer) error {
 	gzWriter := gzip.NewWriter(writer)
 	defer gzWriter.Close()
 
@@ -184,7 +193,7 @@ func (a *Artifact) SaveToWriter(writer io.Writer) error {
 	return err
 }
 
-func (a *Artifact) LoadFromReader(reader io.Reader) error {
+func (a *TarGzArtifact) LoadFromReader(reader io.Reader) error {
 	gzReader, err := gzip.NewReader(reader)
 	if err != nil {
 		return err
@@ -227,7 +236,7 @@ func (a *Artifact) LoadFromReader(reader io.Reader) error {
 	return nil
 }
 
-func (a *Artifact) ListFiles() ([]string, error) {
+func (a *TarGzArtifact) ListFiles() ([]string, error) {
 	var fileList []string
 
 	err := afero.Walk(a.vfs, ".", func(path string, info os.FileInfo, err error) error {
@@ -249,6 +258,6 @@ func (a *Artifact) ListFiles() ([]string, error) {
 	return fileList, nil
 }
 
-func (a *Artifact) Name() string {
+func (a *TarGzArtifact) GetName() string {
 	return a.name
 }

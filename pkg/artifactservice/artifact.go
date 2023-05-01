@@ -12,8 +12,8 @@ import (
 
 // ArtifactServiceClient represents the methods required for artifact management.
 type ArtifactServiceClient interface {
-	UploadArtifact(ctx context.Context, artifact artifact.StorableArtifact) error
-	GetArtifact(ctx context.Context, artifactName string) (artifact.StorableArtifact, error)
+	UploadArtifact(ctx context.Context, artifact artifact.Artifact) error
+	GetArtifact(ctx context.Context, artifactName string) (artifact.Artifact, error)
 }
 
 // Options holds the configuration for the artifact service.
@@ -44,13 +44,13 @@ func New(opts Options) (ArtifactServiceClient, error) {
 }
 
 // UploadArtifact uploads an artifact to storage.
-func (c *Client) UploadArtifact(ctx context.Context, artifact artifact.StorableArtifact) error {
+func (c *Client) UploadArtifact(ctx context.Context, artifact artifact.Artifact) error {
 	var buf bytes.Buffer
 	if err := artifact.SaveToWriter(&buf); err != nil {
 		return err
 	}
 
-	if _, err := c.store.WriteWithContext(ctx, artifact.Name(), bytes.NewReader(buf.Bytes()), int64(buf.Len())); err != nil {
+	if _, err := c.store.WriteWithContext(ctx, artifact.GetName(), bytes.NewReader(buf.Bytes()), int64(buf.Len())); err != nil {
 		return err
 	}
 
@@ -58,15 +58,15 @@ func (c *Client) UploadArtifact(ctx context.Context, artifact artifact.StorableA
 }
 
 // GetArtifact retrieves an artifact from storage.
-func (c *Client) GetArtifact(ctx context.Context, artifactName string) (artifact.StorableArtifact, error) {
+func (c *Client) GetArtifact(ctx context.Context, artifactName string) (artifact.Artifact, error) {
 	artifact := artifact.New(artifactName)
 
-	if _, err := c.store.StatWithContext(ctx, artifact.Name()); err != nil {
+	if _, err := c.store.StatWithContext(ctx, artifact.GetName()); err != nil {
 		return nil, err
 	}
 
 	var buf bytes.Buffer
-	if _, err := c.store.ReadWithContext(ctx, artifact.Name(), &buf); err != nil {
+	if _, err := c.store.ReadWithContext(ctx, artifact.GetName(), &buf); err != nil {
 		return nil, err
 	}
 
