@@ -39,25 +39,25 @@ func New(artifactName string) Artifact {
 	}
 }
 
-func NewFromTarGz(tarGzFilePath string) error {
+func NewFromTarGz(tarGzFilePath string) (Artifact, error) {
 	if !strings.HasSuffix(tarGzFilePath, ".tar.gz") {
-		return fmt.Errorf("tar.gz file path must end with .tar.gz")
+		return nil, fmt.Errorf("tar.gz file path must end with .tar.gz")
 	}
 
 	artifact := New(filepath.Base(tarGzFilePath))
 
 	tarGzFile, err := os.Open(tarGzFilePath)
 	if err != nil {
-		return fmt.Errorf("error opening tar.gz file: %w", err)
+		return nil, fmt.Errorf("error opening tar.gz file: %w", err)
 	}
 	defer tarGzFile.Close()
 
 	err = artifact.LoadFromReader(tarGzFile)
 	if err != nil {
-		return fmt.Errorf("error loading artifact from tar.gz file: %w", err)
+		return nil, fmt.Errorf("error loading artifact from tar.gz file: %w", err)
 	}
 
-	return nil
+	return artifact, nil
 }
 
 func NewWithPaths(artifactName string, paths []string) (Artifact, error) {
