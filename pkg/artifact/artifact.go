@@ -12,10 +12,18 @@ import (
 	"github.com/spf13/afero"
 )
 
-type Artifact struct {
-	Name string
-	Vfs  afero.Fs
-}
+type (
+	StorableArtifact interface {
+		SaveToWriter(w io.Writer) error
+		LoadFromReader(r io.Reader) error
+		Name() string
+	}
+
+	Artifact struct {
+		name string
+		vfs  afero.Fs
+	}
+)
 
 func New(artifactName string) *Artifact {
 	if !strings.HasSuffix(artifactName, ".tar.gz") {
@@ -23,8 +31,8 @@ func New(artifactName string) *Artifact {
 	}
 
 	return &Artifact{
-		Name: artifactName,
-		Vfs:  afero.NewMemMapFs(),
+		name: artifactName,
+		vfs:  afero.NewMemMapFs(),
 	}
 }
 
@@ -76,11 +84,11 @@ func NewWithPaths(artifactName string, paths []string) (*Artifact, error) {
 func (a *Artifact) AddFile(filePath string, content []byte) error {
 	// Ensure the parent directory structure exists
 	dirPath := filepath.Dir(filePath)
-	if err := a.Vfs.MkdirAll(dirPath, 0755); err != nil {
+	if err := a.vfs.MkdirAll(dirPath, 0755); err != nil {
 		return fmt.Errorf("error creating directories in the virtual file system: %w", err)
 	}
 
-	file, err := a.Vfs.Create(filePath)
+	file, err := a.vfs.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("error creating file in the virtual file system: %w", err)
 	}
@@ -110,7 +118,7 @@ func (a *Artifact) LoadFromTarGzFile(tarGzFilePath string) error {
 }
 
 func (a *Artifact) ExtractTo(outputDir string) error {
-	return afero.Walk(a.Vfs, ".", func(path string, info os.FileInfo, err error) error {
+	return afero.Walk(a.vfs, ".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -121,7 +129,7 @@ func (a *Artifact) ExtractTo(outputDir string) error {
 			return os.MkdirAll(outPath, os.ModePerm)
 		}
 
-		inFile, err := a.Vfs.Open(path)
+		inFile, err := a.vfs.Open(path)
 		if err != nil {
 			return err
 		}
@@ -147,7 +155,7 @@ func (a *Artifact) SaveToWriter(writer io.Writer) error {
 	tarWriter := tar.NewWriter(gzWriter)
 	defer tarWriter.Close()
 
-	err := afero.Walk(a.Vfs, ".", func(path string, info os.FileInfo, err error) error {
+	err := afero.Walk(a.vfs, ".", func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return err
 		}
@@ -163,7 +171,7 @@ func (a *Artifact) SaveToWriter(writer io.Writer) error {
 			return err
 		}
 
-		file, err := a.Vfs.Open(path)
+		file, err := a.vfs.Open(path)
 		if err != nil {
 			return err
 		}
@@ -198,12 +206,12 @@ func (a *Artifact) LoadFromReader(reader io.Reader) error {
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			err = a.Vfs.MkdirAll(header.Name, os.FileMode(header.Mode))
+			err = a.vfs.MkdirAll(header.Name, os.FileMode(header.Mode))
 			if err != nil {
 				return err
 			}
 		case tar.TypeReg:
-			outFile, err := a.Vfs.Create(header.Name)
+			outFile, err := a.vfs.Create(header.Name)
 			if err != nil {
 				return err
 			}
@@ -222,7 +230,7 @@ func (a *Artifact) LoadFromReader(reader io.Reader) error {
 func (a *Artifact) ListFiles() ([]string, error) {
 	var fileList []string
 
-	err := afero.Walk(a.Vfs, ".", func(path string, info os.FileInfo, err error) error {
+	err := afero.Walk(a.vfs, ".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -239,4 +247,8 @@ func (a *Artifact) ListFiles() ([]string, error) {
 	}
 
 	return fileList, nil
+}
+
+func (a *Artifact) Name() string {
+	return a.name
 }

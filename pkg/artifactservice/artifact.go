@@ -4,75 +4,73 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 
 	"github.com/flowshot-io/x/pkg/artifact"
 	"github.com/flowshot-io/x/pkg/storager"
 	"go.beyondstorage.io/v5/types"
 )
 
-type (
-	ArtifactServiceClient interface {
-		// UploadArtifact uploads an artifact to storage
-		UploadArtifact(ctx context.Context, artifact *artifact.Artifact) error
+// ArtifactServiceClient represents the methods required for artifact management.
+type ArtifactServiceClient interface {
+	UploadArtifact(ctx context.Context, artifact artifact.StorableArtifact) error
+	GetArtifact(ctx context.Context, artifactName string) (artifact.StorableArtifact, error)
+}
 
-		// GetArtifact gets an artifact from storage
-		GetArtifact(ctx context.Context, artifactName string) (*artifact.Artifact, error)
-	}
+// Options holds the configuration for the artifact service.
+type Options struct {
+	ConnectionString string
+	Store            types.Storager
+}
 
-	Options struct {
-		ConnectionString string
-	}
+// Client implements the ArtifactServiceClient interface.
+type Client struct {
+	store types.Storager
+}
 
-	Client struct {
-		store types.Storager
-	}
-)
-
+// New returns a new instance of an ArtifactServiceClient.
 func New(opts Options) (ArtifactServiceClient, error) {
-	store, err := storager.New(opts.ConnectionString)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create store: %w", err)
+	if opts.Store == nil {
+		store, err := storager.New(opts.ConnectionString)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create store: %w", err)
+		}
+
+		opts.Store = store
 	}
 
 	return &Client{
-		store: store,
+		store: opts.Store,
 	}, nil
 }
 
-func (c *Client) UploadArtifact(ctx context.Context, artifact *artifact.Artifact) error {
+// UploadArtifact uploads an artifact to storage.
+func (c *Client) UploadArtifact(ctx context.Context, artifact artifact.StorableArtifact) error {
 	var buf bytes.Buffer
-	err := artifact.SaveToWriter(&buf)
-	if err != nil {
+	if err := artifact.SaveToWriter(&buf); err != nil {
 		return err
 	}
 
-	_, err = c.store.WriteWithContext(ctx, artifact.Name, bytes.NewReader(buf.Bytes()), int64(buf.Len()))
-	if err != nil {
+	if _, err := c.store.WriteWithContext(ctx, artifact.Name(), bytes.NewReader(buf.Bytes()), int64(buf.Len())); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c *Client) GetArtifact(ctx context.Context, artifactName string) (*artifact.Artifact, error) {
+// GetArtifact retrieves an artifact from storage.
+func (c *Client) GetArtifact(ctx context.Context, artifactName string) (artifact.StorableArtifact, error) {
 	artifact := artifact.New(artifactName)
 
-	_, err := c.store.StatWithContext(ctx, artifact.Name)
-	if err != nil {
+	if _, err := c.store.StatWithContext(ctx, artifact.Name()); err != nil {
 		return nil, err
 	}
 
 	var buf bytes.Buffer
-	writer := io.Writer(&buf)
-
-	_, err = c.store.ReadWithContext(ctx, artifact.Name, writer)
-	if err != nil {
+	if _, err := c.store.ReadWithContext(ctx, artifact.Name(), &buf); err != nil {
 		return nil, err
 	}
 
-	err = artifact.LoadFromReader(&buf)
-	if err != nil {
+	if err := artifact.LoadFromReader(&buf); err != nil {
 		return nil, err
 	}
 
