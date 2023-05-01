@@ -5,7 +5,7 @@ import (
 	// _ "go.beyondstorage.io/services/fs/v4"
 	// _ "go.beyondstorage.io/services/ftp"
 	// _ "go.beyondstorage.io/services/gcs/v3"
-	// _ "go.beyondstorage.io/services/minio"
+	_ "go.beyondstorage.io/services/minio"
 	_ "go.beyondstorage.io/services/s3/v3"
 
 	"go.beyondstorage.io/v5/services"
