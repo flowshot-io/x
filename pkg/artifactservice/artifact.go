@@ -6,8 +6,7 @@ import (
 	"fmt"
 
 	"github.com/flowshot-io/x/pkg/artifact"
-	"github.com/flowshot-io/x/pkg/storager"
-	"go.beyondstorage.io/v5/types"
+	"github.com/flowshot-io/x/pkg/storage/types"
 )
 
 // ArtifactServiceClient represents the methods required for artifact management.
@@ -18,24 +17,18 @@ type ArtifactServiceClient interface {
 
 // Options holds the configuration for the artifact service.
 type Options struct {
-	ConnectionString string
-	Store            types.Storager
+	Store types.Storage
 }
 
 // Client implements the ArtifactServiceClient interface.
 type Client struct {
-	store types.Storager
+	store types.Storage
 }
 
 // New returns a new instance of an ArtifactServiceClient.
 func New(opts Options) (ArtifactServiceClient, error) {
 	if opts.Store == nil {
-		store, err := storager.New(opts.ConnectionString)
-		if err != nil {
-			return nil, fmt.Errorf("unable to create store: %w", err)
-		}
-
-		opts.Store = store
+		return nil, fmt.Errorf("store is required")
 	}
 
 	return &Client{
