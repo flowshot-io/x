@@ -12,22 +12,25 @@ require (
 )
 
 require (
-	github.com/andybalholm/brotli v1.0.1 // indirect
+	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/aws/smithy-go v1.8.1 // indirect
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/golang/snappy v0.0.2 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/klauspost/compress v1.13.5 // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/leodido/go-urn v1.2.3 // indirect
 	github.com/nwaples/rardecode v1.1.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.2 // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/ulikunitz/xz v0.5.9 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -17,7 +18,7 @@ type (
 		SaveToWriter(w io.Writer) error
 		LoadFromReader(r io.Reader) error
 		ExtractToDirectory(dir string) error
-		AddFile(path string, content []byte) error
+		AddFile(virtualPath string, filePath string, content []byte) error
 		ListFiles() ([]string, error)
 		GetName() string
 	}
@@ -79,7 +80,11 @@ func NewWithPaths(artifactName string, paths []string) (Artifact, error) {
 					if err != nil {
 						return fmt.Errorf("error reading file: %s, error: %w", subPath, err)
 					}
-					err = artifact.AddFile(subPath, content)
+					relativePath, err := filepath.Rel(path, subPath)
+					if err != nil {
+						return fmt.Errorf("error creating relative file path: %s, error: %w", subPath, err)
+					}
+					err = artifact.AddFile(relativePath, subPath, content)
 					if err != nil {
 						return fmt.Errorf("error adding file: %s, error: %w", subPath, err)
 					}
@@ -94,7 +99,7 @@ func NewWithPaths(artifactName string, paths []string) (Artifact, error) {
 			if err != nil {
 				return nil, fmt.Errorf("error reading file: %s, error: %w", path, err)
 			}
-			err = artifact.AddFile(path, content)
+			err = artifact.AddFile("", path, content)
 			if err != nil {
 				return nil, fmt.Errorf("error adding file: %s, error: %w", path, err)
 			}
@@ -105,14 +110,23 @@ func NewWithPaths(artifactName string, paths []string) (Artifact, error) {
 }
 
 // AddFile adds a file to the artifact
-func (a *TarGzArtifact) AddFile(filePath string, content []byte) error {
+func (a *TarGzArtifact) AddFile(virtualPath string, filePath string, content []byte) error {
+	// Ensure the virtualPath is not empty and is clean
+	if virtualPath == "" {
+		return fmt.Errorf("virtualPath cannot be empty")
+	}
+	virtualPath = path.Clean("/" + virtualPath)
+
+	// Join the virtualPath and the file name
+	virtualFilePath := path.Join(virtualPath, filepath.Base(filePath))
+
 	// Ensure the parent directory structure exists
-	dirPath := filepath.Dir(filePath)
+	dirPath := filepath.Dir(virtualFilePath)
 	if err := a.vfs.MkdirAll(dirPath, 0755); err != nil {
 		return fmt.Errorf("error creating directories in the virtual file system: %w", err)
 	}
 
-	file, err := a.vfs.Create(filePath)
+	file, err := a.vfs.Create(virtualFilePath)
 	if err != nil {
 		return fmt.Errorf("error creating file in the virtual file system: %w", err)
 	}
