@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/flowshot-io/x/pkg/artifact"
 	"github.com/flowshot-io/x/pkg/storage/types"
@@ -12,23 +13,30 @@ import (
 // ArtifactServiceClient represents the methods required for artifact management.
 type ArtifactServiceClient interface {
 	UploadArtifact(ctx context.Context, artifact artifact.Artifact) error
-	GetArtifact(ctx context.Context, artifactName string) (artifact.Artifact, error)
+	DownloadArtifact(ctx context.Context, artifactName string) (artifact.Artifact, error)
+	DeleteArtifact(ctx context.Context, artifactName string) error
 }
 
 // Options holds the configuration for the artifact service.
 type Options struct {
-	Store types.Storage
+	Store      types.Storage
+	WorkingDir string
 }
 
 // Client implements the ArtifactServiceClient interface.
 type Client struct {
-	store types.Storage
+	store      types.Storage
+	workingDir string
 }
 
 // New returns a new instance of an ArtifactServiceClient.
 func New(opts Options) (ArtifactServiceClient, error) {
 	if opts.Store == nil {
 		return nil, fmt.Errorf("store is required")
+	}
+
+	if opts.WorkingDir == "" {
+		opts.WorkingDir = "artifacts"
 	}
 
 	return &Client{
@@ -43,23 +51,24 @@ func (c *Client) UploadArtifact(ctx context.Context, artifact artifact.Artifact)
 		return err
 	}
 
-	if _, err := c.store.WriteWithContext(ctx, artifact.GetName(), bytes.NewReader(buf.Bytes()), int64(buf.Len())); err != nil {
+	if _, err := c.store.WriteWithContext(ctx, c.getWorkingPath(artifact.GetName()), bytes.NewReader(buf.Bytes()), int64(buf.Len())); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// GetArtifact retrieves an artifact from storage.
-func (c *Client) GetArtifact(ctx context.Context, artifactName string) (artifact.Artifact, error) {
+// DownloadArtifact downloads an artifact from storage.
+func (c *Client) DownloadArtifact(ctx context.Context, artifactName string) (artifact.Artifact, error) {
 	artifact := artifact.New(artifactName)
+	path := c.getWorkingPath(artifact.GetName())
 
-	if _, err := c.store.StatWithContext(ctx, artifact.GetName()); err != nil {
+	if _, err := c.store.StatWithContext(ctx, path); err != nil {
 		return nil, err
 	}
 
 	var buf bytes.Buffer
-	if _, err := c.store.ReadWithContext(ctx, artifact.GetName(), &buf); err != nil {
+	if _, err := c.store.ReadWithContext(ctx, path, &buf); err != nil {
 		return nil, err
 	}
 
@@ -68,4 +77,17 @@ func (c *Client) GetArtifact(ctx context.Context, artifactName string) (artifact
 	}
 
 	return artifact, nil
+}
+
+// DeleteArtifact deletes an artifact from storage.
+func (c *Client) DeleteArtifact(ctx context.Context, artifactName string) error {
+	if err := c.store.DeleteWithContext(ctx, c.getWorkingPath(artifactName)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) getWorkingPath(artifactName string) string {
+	return filepath.Join(c.workingDir, artifactName)
 }
