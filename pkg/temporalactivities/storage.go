@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/flowshot-io/x/pkg/storage/types"
+	"github.com/flowshot-io/polystore/pkg/types"
 )
 
 type StorageActivities struct {

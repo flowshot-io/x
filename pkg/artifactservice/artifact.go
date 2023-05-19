@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/flowshot-io/polystore/pkg/types"
 	"github.com/flowshot-io/x/pkg/artifact"
-	"github.com/flowshot-io/x/pkg/storage/types"
 )
 
 // ArtifactServiceClient represents the methods required for artifact management.
