@@ -75,6 +75,7 @@ func NewWithPaths(artifactName string, paths []string) (Artifact, error) {
 				if err != nil {
 					return err
 				}
+
 				if !info.IsDir() {
 					content, err := os.ReadFile(subPath)
 					if err != nil {
@@ -111,11 +112,12 @@ func NewWithPaths(artifactName string, paths []string) (Artifact, error) {
 
 // AddFile adds a file to the artifact
 func (a *TarGzArtifact) AddFile(virtualPath string, filePath string, content []byte) error {
-	// Ensure the virtualPath is not empty and is clean
 	if virtualPath == "" {
-		return fmt.Errorf("virtualPath cannot be empty")
+		virtualPath = "/"
 	}
-	virtualPath = path.Clean("/" + virtualPath)
+
+	// Ensure the filePath is a directory and is clean
+	virtualPath = path.Clean("/" + filepath.Dir(virtualPath))
 
 	// Join the virtualPath and the file name
 	virtualFilePath := path.Join(virtualPath, filepath.Base(filePath))
@@ -141,7 +143,7 @@ func (a *TarGzArtifact) AddFile(virtualPath string, filePath string, content []b
 }
 
 func (a *TarGzArtifact) ExtractToDirectory(outputDir string) error {
-	return afero.Walk(a.vfs, ".", func(path string, info os.FileInfo, err error) error {
+	return afero.Walk(a.vfs, "/", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -178,7 +180,7 @@ func (a *TarGzArtifact) SaveToWriter(writer io.Writer) error {
 	tarWriter := tar.NewWriter(gzWriter)
 	defer tarWriter.Close()
 
-	err := afero.Walk(a.vfs, ".", func(path string, info os.FileInfo, err error) error {
+	err := afero.Walk(a.vfs, "/", func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return err
 		}
@@ -253,7 +255,7 @@ func (a *TarGzArtifact) LoadFromReader(reader io.Reader) error {
 func (a *TarGzArtifact) ListFiles() ([]string, error) {
 	var fileList []string
 
-	err := afero.Walk(a.vfs, ".", func(path string, info os.FileInfo, err error) error {
+	err := afero.Walk(a.vfs, "/", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
