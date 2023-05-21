@@ -6,7 +6,10 @@ require (
 	github.com/flowshot-io/polystore v0.0.0-20230519135222-8e879520a37d
 	github.com/go-playground/validator/v10 v10.13.0
 	github.com/mholt/archiver/v3 v3.5.1
+	github.com/rs/zerolog v1.29.1
 	github.com/spf13/afero v1.9.5
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	logur.dev/adapter/zerolog v0.6.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -20,6 +23,8 @@ require (
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/leodido/go-urn v1.2.3 // indirect
+	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/nwaples/rardecode v1.1.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
@@ -30,4 +35,5 @@ require (
 	golang.org/x/text v0.8.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	logur.dev/logur v0.17.0 // indirect
 )
