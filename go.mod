@@ -7,6 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.13.0
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/spf13/afero v1.9.5
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	sigs.k8s.io/yaml v1.3.0
 )
 
