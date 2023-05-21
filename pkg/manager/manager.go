@@ -74,6 +74,7 @@ func (sm *ServiceManager) Start() error {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 
+	var startedServicesMutex sync.Mutex
 	var startedServices []Service
 
 	var g errgroup.Group
@@ -88,7 +89,9 @@ func (sm *ServiceManager) Start() error {
 				return fmt.Errorf("error starting service %s: %w", name, err)
 			}
 
+			startedServicesMutex.Lock()
 			startedServices = append(startedServices, s)
+			startedServicesMutex.Unlock()
 
 			return nil
 		})
