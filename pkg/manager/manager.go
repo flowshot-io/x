@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/flowshot-io/x/pkg/logger"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -24,20 +25,34 @@ type (
 		Start() error
 		Stop() error
 	}
+
+	Options struct {
+		Logger logger.Logger
+	}
+
+	// ServiceManager is responsible for managing multiple services.
+	ServiceManager struct {
+		mu        sync.RWMutex
+		services  map[ServiceName]Service
+		opMutex   sync.Mutex
+		operating bool
+		logger    logger.Logger
+	}
 )
 
-// ServiceManager is responsible for managing multiple services.
-type ServiceManager struct {
-	mu        sync.RWMutex
-	services  map[ServiceName]Service
-	opMutex   sync.Mutex
-	operating bool
-}
-
 // New creates and returns a new ServiceManager.
-func New() *ServiceManager {
+func New(opts *Options) *ServiceManager {
+	if opts == nil {
+		opts = &Options{}
+	}
+
+	if opts.Logger == nil {
+		opts.Logger = logger.New(nil)
+	}
+
 	return &ServiceManager{
 		services: make(map[ServiceName]Service),
+		logger:   opts.Logger,
 	}
 }
 
@@ -47,6 +62,9 @@ func (sm *ServiceManager) Add(name ServiceName, s Service) error {
 	sm.opMutex.Lock()
 	if sm.operating {
 		sm.opMutex.Unlock()
+		sm.logger.Warn("Cannot add service during start or stop operation", map[string]interface{}{
+			"serviceName": name,
+		})
 		return errors.New("cannot add service during start or stop operation")
 	}
 	sm.opMutex.Unlock()
@@ -54,6 +72,9 @@ func (sm *ServiceManager) Add(name ServiceName, s Service) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.services[name] = s
+	sm.logger.Info("Service added to service manager", map[string]interface{}{
+		"serviceName": name,
+	})
 
 	return nil
 }
@@ -61,6 +82,7 @@ func (sm *ServiceManager) Add(name ServiceName, s Service) error {
 // Start starts all services concurrently.
 // If any service fails to start, it stops the already started services and returns the error.
 func (sm *ServiceManager) Start() error {
+	sm.logger.Info("Starting services...")
 	sm.opMutex.Lock()
 	sm.operating = true
 	sm.opMutex.Unlock()
@@ -74,8 +96,8 @@ func (sm *ServiceManager) Start() error {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 
-	var startedServicesMutex sync.Mutex
 	var startedServices []Service
+	var startedServicesMutex sync.Mutex
 
 	var g errgroup.Group
 	for name, s := range sm.services {
@@ -86,6 +108,9 @@ func (sm *ServiceManager) Start() error {
 		g.Go(func() error {
 			err := s.Start()
 			if err != nil {
+				sm.logger.Error(fmt.Sprintf("Error starting service %s", name), map[string]interface{}{
+					"error": err.Error(),
+				})
 				return fmt.Errorf("error starting service %s: %w", name, err)
 			}
 
@@ -93,6 +118,7 @@ func (sm *ServiceManager) Start() error {
 			startedServices = append(startedServices, s)
 			startedServicesMutex.Unlock()
 
+			sm.logger.Info(fmt.Sprintf("Service %s started successfully", name))
 			return nil
 		})
 	}
@@ -103,15 +129,20 @@ func (sm *ServiceManager) Start() error {
 			s.Stop()
 		}
 
+		sm.logger.Error("Error during starting services", map[string]interface{}{
+			"error": err.Error(),
+		})
 		return err
 	}
 
+	sm.logger.Info("All services started successfully")
 	return nil
 }
 
 // Stop stops all services concurrently.
 // If any service fails to stop, it continues to stop other services and returns the error.
 func (sm *ServiceManager) Stop() error {
+	sm.logger.Info("Stopping services...")
 	sm.opMutex.Lock()
 	sm.operating = true
 	sm.opMutex.Unlock()
@@ -133,12 +164,24 @@ func (sm *ServiceManager) Stop() error {
 
 		g.Go(func() error {
 			if err := s.Stop(); err != nil {
+				sm.logger.Error(fmt.Sprintf("Error stopping service %s", name), map[string]interface{}{
+					"error": err.Error(),
+				})
 				return fmt.Errorf("error stopping service %s: %w", name, err)
 			}
 
+			sm.logger.Info(fmt.Sprintf("Service %s stopped successfully", name))
 			return nil
 		})
 	}
 
-	return g.Wait()
+	if err := g.Wait(); err != nil {
+		sm.logger.Error("Error during stopping services", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return err
+	}
+
+	sm.logger.Info("All services stopped successfully")
+	return nil
 }

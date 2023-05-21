@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/flowshot-io/x/pkg/manager"
 )
 
@@ -26,7 +27,7 @@ func (s *SimpleService) Stop() error {
 
 func TestServiceManager(t *testing.T) {
 	t.Run("Add and Start Services", func(t *testing.T) {
-		serviceManager := manager.New()
+		serviceManager := manager.New(&manager.Options{Logger: logger.NoOp()})
 
 		s1 := &SimpleService{name: "Service1"}
 		s2 := &SimpleService{name: "Service2"}
@@ -53,7 +54,7 @@ func TestServiceManager(t *testing.T) {
 	})
 
 	t.Run("Stop Services", func(t *testing.T) {
-		serviceManager := manager.New()
+		serviceManager := manager.New(&manager.Options{Logger: logger.NoOp()})
 
 		s1 := &SimpleService{name: "Service1"}
 		s2 := &SimpleService{name: "Service2"}
@@ -85,7 +86,7 @@ func TestServiceManager(t *testing.T) {
 }
 
 func TestRaceCondition(t *testing.T) {
-	serviceManager := manager.New()
+	serviceManager := manager.New(&manager.Options{Logger: logger.NoOp()})
 
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {
