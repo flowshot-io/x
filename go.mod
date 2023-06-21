@@ -3,7 +3,7 @@ module github.com/flowshot-io/x
 go 1.19
 
 require (
-	github.com/flowshot-io/polystore v0.0.0-20230519135222-8e879520a37d
+	github.com/flowshot-io/polystore v0.0.0-20230621201602-3d809f4ca302
 	github.com/go-playground/validator/v10 v10.13.0
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/rs/zerolog v1.29.1
