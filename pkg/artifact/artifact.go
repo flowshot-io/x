@@ -16,7 +16,7 @@ import (
 type (
 	Artifact interface {
 		SaveToWriter(w io.Writer) error
-		LoadFromReader(r io.Reader) error
+		LoadFromReader(r io.ReadCloser) error
 		ExtractToDirectory(dir string) error
 		AddFile(virtualPath string, filePath string, content []byte) error
 		ListFiles() ([]string, error)
@@ -209,7 +209,7 @@ func (a *TarGzArtifact) SaveToWriter(writer io.Writer) error {
 	return err
 }
 
-func (a *TarGzArtifact) LoadFromReader(reader io.Reader) error {
+func (a *TarGzArtifact) LoadFromReader(reader io.ReadCloser) error {
 	gzReader, err := gzip.NewReader(reader)
 	if err != nil {
 		return err

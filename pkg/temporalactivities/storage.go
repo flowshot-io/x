@@ -3,6 +3,7 @@ package temporalactivities
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -53,9 +54,15 @@ func (a *StorageActivities) DownloadFile(ctx context.Context, path string, desti
 	}
 	defer file.Close()
 
-	_, err = a.storage.ReadWithContext(ctx, path, file)
+	reader, err := a.storage.ReadWithContext(ctx, path, 0, 0)
 	if err != nil {
 		return "", fmt.Errorf("failed to get object: %v", err)
+	}
+	defer reader.Close()
+
+	_, err = io.Copy(file, reader)
+	if err != nil {
+		return "", fmt.Errorf("failed to copy file: %v", err)
 	}
 
 	return outputPath, nil

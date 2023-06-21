@@ -67,12 +67,13 @@ func (c *Client) DownloadArtifact(ctx context.Context, artifactName string) (art
 		return nil, err
 	}
 
-	var buf bytes.Buffer
-	if _, err := c.store.ReadWithContext(ctx, path, &buf); err != nil {
+	reader, err := c.store.ReadWithContext(ctx, path, 0, 0)
+	if err != nil {
 		return nil, err
 	}
+	defer reader.Close()
 
-	if err := artifact.LoadFromReader(&buf); err != nil {
+	if err := artifact.LoadFromReader(reader); err != nil {
 		return nil, err
 	}
 
