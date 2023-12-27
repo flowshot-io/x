@@ -20,10 +20,13 @@ type (
 
 	// Options struct defines the logger options. Pretty determines whether logs will be pretty-printed.
 	// LogLevel sets the level of logs to show (trace, debug, info, warn, error).
+	// Writer sets the writer to write logs to.
+	// Hooks sets the hooks to be used by the logger.
 	Options struct {
 		Pretty   bool
 		LogLevel string
 		Writer   io.Writer
+		Hooks    []zerolog.Hook
 	}
 
 	// Option defines a function which sets an option on the Options struct.
@@ -51,6 +54,13 @@ func WithWriter(writer io.Writer) Option {
 	}
 }
 
+// WithHook adds a hook to the logger.
+func WithHook(hook zerolog.Hook) Option {
+	return func(o *Options) {
+		o.Hooks = append(o.Hooks, hook)
+	}
+}
+
 // New creates a new Logger based on provided Options.
 func New(opts ...Option) Logger {
 	options := &Options{
@@ -61,8 +71,13 @@ func New(opts ...Option) Logger {
 		opt(options)
 	}
 
+	logger := zerolog.New(getWriter(options)).With().Timestamp().Logger()
+	for _, hook := range options.Hooks {
+		logger = logger.Hook(hook)
+	}
+
 	zerolog.SetGlobalLevel(parseLogLevel(options.LogLevel))
-	return zerologadapter.New(zerolog.New(getWriter(options)).With().Timestamp().Logger())
+	return zerologadapter.New(logger)
 }
 
 // NoOp returns a no-operation Logger which doesn't perform any logging operations.
