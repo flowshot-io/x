@@ -6,7 +6,17 @@ import (
 	"testing"
 
 	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/rs/zerolog"
 )
+
+// Custom Hook for testing
+type testHook struct {
+	called bool
+}
+
+func (h *testHook) Run(e *zerolog.Event, level zerolog.Level, message string) {
+	h.called = true
+}
 
 func TestLogger(t *testing.T) {
 	buf := &bytes.Buffer{}
@@ -64,6 +74,22 @@ func TestWithLogLevel(t *testing.T) {
 	logger.WithLogLevel(level)(opts)
 	if opts.LogLevel != level {
 		t.Errorf("WithLogLevel() didn't set LogLevel to %s", level)
+	}
+}
+
+func TestLoggerWithHook(t *testing.T) {
+	buf := &bytes.Buffer{}
+	th := &testHook{}
+	log := logger.New(logger.WithWriter(buf), logger.WithLogLevel("debug"), logger.WithHook(th))
+	log.Debug("test message")
+
+	if !th.called {
+		t.Errorf("Expected the hook to be called, but it wasn't")
+	}
+
+	output := buf.String()
+	if !strings.Contains(output, "test message") {
+		t.Errorf("Expected 'test message', got %v", output)
 	}
 }
 
