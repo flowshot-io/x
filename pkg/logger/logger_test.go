@@ -20,7 +20,7 @@ func (h *testHook) Run(e *zerolog.Event, level zerolog.Level, message string) {
 
 func TestLogger(t *testing.T) {
 	buf := &bytes.Buffer{}
-	logger := logger.New(logger.WithWriter(buf), logger.WithLogLevel("debug"))
+	logger := logger.New(logger.WithWriters(buf), logger.WithLogLevel("debug"))
 	logger.Debug("test message")
 	output := buf.String()
 	if !strings.Contains(output, "test message") {
@@ -44,7 +44,7 @@ func TestLoggerWithLogLevel(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			log := logger.New(logger.WithWriter(buf), logger.WithLogLevel(tt.level))
+			log := logger.New(logger.WithWriters(buf), logger.WithLogLevel(tt.level))
 			tt.logFn(log)
 			output := buf.String()
 
@@ -80,7 +80,7 @@ func TestWithLogLevel(t *testing.T) {
 func TestLoggerWithHook(t *testing.T) {
 	buf := &bytes.Buffer{}
 	th := &testHook{}
-	log := logger.New(logger.WithWriter(buf), logger.WithLogLevel("debug"), logger.WithHook(th))
+	log := logger.New(logger.WithWriters(buf), logger.WithLogLevel("debug"), logger.WithHook(th))
 	log.Debug("test message")
 
 	if !th.called {

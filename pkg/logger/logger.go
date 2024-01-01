@@ -25,7 +25,7 @@ type (
 	Options struct {
 		Pretty   bool
 		LogLevel string
-		Writer   io.Writer
+		Writers  []io.Writer
 		Hooks    []zerolog.Hook
 	}
 
@@ -48,9 +48,9 @@ func WithLogLevel(level string) Option {
 }
 
 // WithWriter sets the writer on the Options struct.
-func WithWriter(writer io.Writer) Option {
+func WithWriters(writers ...io.Writer) Option {
 	return func(o *Options) {
-		o.Writer = writer
+		o.Writers = append(o.Writers, writers...)
 	}
 }
 
@@ -64,7 +64,7 @@ func WithHook(hook zerolog.Hook) Option {
 // New creates a new Logger based on provided Options.
 func New(opts ...Option) Logger {
 	options := &Options{
-		Writer: os.Stderr,
+		Writers: []io.Writer{os.Stdout},
 	}
 
 	for _, opt := range opts {
@@ -101,12 +101,18 @@ func parseLogLevel(level string) zerolog.Level {
 	}
 }
 
-// getWriter creates and returns a writer based on the pretty flag. If pretty is true, it returns a ConsoleWriter.
-// Otherwise, it returns the writer provided in options.
+// getWriter creates and returns a writer based on the pretty flag and multiple writers.
+// If pretty is true, it adds a ConsoleWriter to the writers slice.
+// It returns a MultiLevelWriter if multiple writers are provided.
 func getWriter(opts *Options) io.Writer {
 	if opts.Pretty {
-		return zerolog.ConsoleWriter{Out: opts.Writer, TimeFormat: zerolog.TimeFieldFormat}
+		consoleWriter := zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: zerolog.TimeFieldFormat}
+		opts.Writers = append(opts.Writers, consoleWriter)
 	}
 
-	return opts.Writer
+	if len(opts.Writers) > 1 {
+		return zerolog.MultiLevelWriter(opts.Writers...)
+	}
+
+	return opts.Writers[0]
 }
