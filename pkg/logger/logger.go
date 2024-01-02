@@ -18,12 +18,11 @@ type (
 		Error(msg string, fields ...map[string]interface{})
 	}
 
-	// Options struct defines the logger options. Pretty determines whether logs will be pretty-printed.
+	// Options struct defines the logger options.
 	// LogLevel sets the level of logs to show (trace, debug, info, warn, error).
 	// Writer sets the writer to write logs to.
 	// Hooks sets the hooks to be used by the logger.
 	Options struct {
-		Pretty   bool
 		LogLevel string
 		Writers  []io.Writer
 		Hooks    []zerolog.Hook
@@ -32,13 +31,6 @@ type (
 	// Option defines a function which sets an option on the Options struct.
 	Option func(*Options)
 )
-
-// WithPretty sets the pretty flag on the Options struct.
-func WithPretty() Option {
-	return func(o *Options) {
-		o.Pretty = true
-	}
-}
 
 // WithLogLevel sets the log level on the Options struct.
 func WithLogLevel(level string) Option {
@@ -50,7 +42,7 @@ func WithLogLevel(level string) Option {
 // WithWriter sets the writer on the Options struct.
 func WithWriters(writers ...io.Writer) Option {
 	return func(o *Options) {
-		o.Writers = append(o.Writers, writers...)
+		o.Writers = writers
 	}
 }
 
@@ -85,6 +77,11 @@ func NoOp() Logger {
 	return zerologadapter.New(zerolog.Nop())
 }
 
+// PrettyWriter returns a ConsoleWriter which writes logs in a human-readable format.
+func PrettyWriter() io.Writer {
+	return zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: zerolog.TimeFieldFormat}
+}
+
 // parseLogLevel parses the log level string and returns the corresponding zerolog.Level.
 func parseLogLevel(level string) zerolog.Level {
 	switch level {
@@ -105,11 +102,6 @@ func parseLogLevel(level string) zerolog.Level {
 // If pretty is true, it adds a ConsoleWriter to the writers slice.
 // It returns a MultiLevelWriter if multiple writers are provided.
 func getWriter(opts *Options) io.Writer {
-	if opts.Pretty {
-		consoleWriter := zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: zerolog.TimeFieldFormat}
-		opts.Writers = append(opts.Writers, consoleWriter)
-	}
-
 	if len(opts.Writers) > 1 {
 		return zerolog.MultiLevelWriter(opts.Writers...)
 	}

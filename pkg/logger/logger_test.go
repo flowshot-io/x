@@ -60,14 +60,6 @@ func TestLoggerWithLogLevel(t *testing.T) {
 	}
 }
 
-func TestWithPretty(t *testing.T) {
-	opts := &logger.Options{}
-	logger.WithPretty()(opts)
-	if opts.Pretty != true {
-		t.Errorf("WithPretty() didn't set Pretty to true")
-	}
-}
-
 func TestWithLogLevel(t *testing.T) {
 	level := "debug"
 	opts := &logger.Options{}
@@ -94,7 +86,7 @@ func TestLoggerWithHook(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	logger := logger.New(logger.WithPretty(), logger.WithLogLevel("debug"))
+	logger := logger.New(logger.WithLogLevel("debug"))
 	if logger == nil {
 		t.Errorf("New() returned nil")
 	}
